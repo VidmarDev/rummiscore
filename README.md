@@ -22,7 +22,7 @@ The app is available as a PWA - simply visit [rummi.vidmardata.se](https://rummi
 
 ## Contributing
 
-If you'd like to submit a pull request (PR) or suggest new features (such as additional language support or further game enhancements), don't hesitate. :)
+If you'd like to submit a pull request (PR) or suggest new features (such as additional language support or further tool enhancements), don't hesitate. :)
 
 ## License
 
