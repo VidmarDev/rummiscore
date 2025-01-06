@@ -4,19 +4,19 @@
     <div class="header-section q-mb-lg">
       <div class="row items-center justify-between q-pb-md">
         <div>
-          <h4 class="text-h4 q-my-none text-weight-medium">RummiScore</h4>
+          <h4 class="text-h4 q-my-none text-weight-medium">
+            {{ t("app.title") }}
+          </h4>
           <p class="text-subtitle2 text-grey-7" v-if="currentGameStartTime">
-            {{ timeElapsed }}
+            {{
+              t("app.subtitle", {
+                date: formatDate(currentGameStartTime),
+                time: formatTime(currentGameStartTime),
+              })
+            }}
           </p>
         </div>
         <div class="row q-gutter-sm">
-          <q-btn
-            flat
-            round
-            icon="analytics"
-            @click="showStats = true"
-            color="primary"
-          />
           <q-btn
             flat
             round
@@ -41,7 +41,6 @@
           >
             <q-tooltip>{{ undoTooltip }}</q-tooltip>
           </q-btn>
-
           <q-btn
             flat
             round
@@ -52,6 +51,55 @@
           >
             <q-tooltip>{{ redoTooltip }}</q-tooltip>
           </q-btn>
+
+          <q-btn-group flat>
+            <q-btn
+              flat
+              :label="currentLanguage"
+              icon="language"
+              color="primary"
+              class="text-weight-medium"
+              style="letter-spacing: 0.5px"
+            >
+              <q-menu
+                class="language-menu"
+                transition-show="jump-down"
+                transition-hide="jump-up"
+              >
+                <q-list
+                  padding
+                  class="rounded-borders"
+                  style="
+                    min-width: 150px;
+                    background: rgba(255, 255, 255, 0.95);
+                  "
+                >
+                  <q-item
+                    v-for="(lang, index) in languages"
+                    :key="index"
+                    clickable
+                    v-close-popup
+                    @click="changeLanguage(lang.code)"
+                    :active="currentLanguage === lang.code.toUpperCase()"
+                    class="language-item q-py-md"
+                  >
+                    <q-item-section>
+                      <div class="row items-center justify-between">
+                        <span class="text-subtitle1">{{ lang.name }}</span>
+                        <q-icon
+                          v-if="currentLanguage === lang.code.toUpperCase()"
+                          name="check"
+                          color="primary"
+                          size="sm"
+                        />
+                      </div>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+          </q-btn-group>
+
           <q-btn
             flat
             round
@@ -60,6 +108,43 @@
             color="primary"
           />
         </div>
+      </div>
+
+      <!-- Player Management -->
+      <div class="player-section q-mb-lg">
+        <q-card flat class="bg-white">
+          <q-card-section>
+            <q-input
+              v-model="newPlayer"
+              :placeholder="t('players.addPlayer')"
+              outlined
+              @keyup.enter="addPlayer"
+              :rules="[
+                (val) => val.trim().length <= 20 || t('players.nameTooLong'),
+                (val) =>
+                  !players.some(
+                    (player) =>
+                      player.toUpperCase() === val.trim().toUpperCase(),
+                  ) || t('players.playerExists'),
+              ]"
+            >
+              <template v-slot:prepend>
+                <q-icon name="person_add" color="primary" />
+              </template>
+              <template v-slot:append>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="add"
+                  color="primary"
+                  @click="addPlayer"
+                  :disable="!newPlayer.trim()"
+                />
+              </template>
+            </q-input>
+          </q-card-section>
+        </q-card>
       </div>
 
       <!-- Quick Stats -->
@@ -71,7 +156,9 @@
         >
           <q-card flat class="stats-card">
             <q-card-section>
-              <div class="text-subtitle2 text-grey-7">{{ stat.label }}</div>
+              <div class="text-subtitle2 text-grey-7">
+                {{ t(`stats.${stat.key}`) }}
+              </div>
               <div class="text-h5 text-weight-medium q-mt-sm text-uppercase">
                 {{ stat.value }}
               </div>
@@ -80,43 +167,8 @@
         </div>
       </div>
     </div>
-    <!-- Player Management -->
-    <div class="player-section q-mb-lg">
-      <q-card flat class="bg-white">
-        <q-card-section>
-          <q-input
-            v-model="newPlayer"
-            placeholder="Add player"
-            outlined
-            @keyup.enter="addPlayer"
-            :rules="[
-              (val) => val.trim().length <= 20 || 'Name too long',
-              (val) =>
-                !players.some(
-                  (player) => player.toUpperCase() === val.trim().toUpperCase(),
-                ) || 'Player already exists',
-            ]"
-          >
-            <template v-slot:prepend>
-              <q-icon name="person_add" color="primary" />
-            </template>
-            <template v-slot:append>
-              <q-btn
-                flat
-                round
-                dense
-                icon="add"
-                color="primary"
-                @click="addPlayer"
-                :disable="!newPlayer.trim()"
-              />
-            </template>
-          </q-input>
-        </q-card-section>
-      </q-card>
-    </div>
 
-    <!-- Score Table with Enhanced Features -->
+    <!-- Score Table -->
     <div class="score-table" v-if="players.length">
       <q-card flat class="bg-white">
         <q-table
@@ -129,7 +181,6 @@
           row-key="round"
           class="ios-table"
         >
-          <!-- Header with Player Names -->
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th class="text-center"></q-th>
@@ -137,41 +188,63 @@
                 v-for="player in players"
                 :key="player"
                 class="text-center"
-                :class="{ 'bg-primary ': isWinningPlayer(player) }"
+                :class="{ 'bg-primary': isWinningPlayer(player) }"
               >
-                <div class="row items-center justify-center">
-                  <q-input
-                    v-model="players[players.indexOf(player)]"
-                    dense
-                    borderless
-                    class="player-name-edit text-center"
-                    :input-class="{
-                      'text-white': isWinningPlayer(player),
-                    }"
-                    @change="updatePlayerName(player, $event)"
-                  >
-                    <template v-slot:append>
-                      <q-btn
-                        flat
-                        round
-                        dense
-                        icon="close"
-                        size="sm"
-                        @click.stop="removePlayer(player)"
+                <div
+                  class="row items-center justify-center q-gutter-x-sm player-name-container"
+                >
+                  <div class="player-name-wrapper">
+                    <template v-if="editingPlayerName !== player">
+                      <div
+                        :class="{ 'text-white': isWinningPlayer(player) }"
+                        class="player-name-display"
+                        @click="startEditing(player)"
                       >
-                        <q-tooltip>Remove Player</q-tooltip>
-                      </q-btn>
+                        {{ player }}
+                      </div>
                     </template>
-                  </q-input>
+                    <q-input
+                      v-else
+                      v-model="tempPlayerName"
+                      dense
+                      borderless
+                      color="deep-orange-4"
+                      class="player-name-edit"
+                      :input-class="[
+                        'player-name-input',
+                        {
+                          'text-white':
+                            isWinningPlayer(player) &&
+                            editingPlayerName !== player,
+                        },
+                      ]"
+                      @blur="handleNameBlur(player)"
+                      @keyup.enter="handleNameSubmit(player)"
+                      autofocus
+                    />
+                  </div>
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="close"
+                    size="sm"
+                    @click.stop="removePlayer(player)"
+                    :class="{ 'text-white': isWinningPlayer(player) }"
+                  >
+                    <q-tooltip>{{ t("players.removePlayer") }}</q-tooltip>
+                  </q-btn>
                 </div>
               </q-th>
             </q-tr>
           </template>
-
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td class="text-center">
-                <div class="row items-center justify-center">
+                <!-- Round number and actions -->
+                <div
+                  class="row items-center justify-center no-wrap q-gutter-x-xs"
+                >
                   <q-btn
                     flat
                     round
@@ -179,12 +252,14 @@
                     icon="close"
                     size="sm"
                     @click.stop="confirmRemoveRound(props.row.round)"
-                    class="q-ml-xs"
                     color="negative"
                   >
-                    <q-tooltip>Remove Round</q-tooltip>
+                    <q-tooltip>{{ t("game.removeRound") }}</q-tooltip>
                   </q-btn>
-                  Round {{ props.row.round }}
+                  <div class="text-light text-grey-9">
+                    {{ t("game.round") }}
+                    <span class="round-number">{{ props.row.round }}</span>
+                  </div>
                   <q-btn
                     flat
                     round
@@ -196,14 +271,13 @@
                     "
                     size="sm"
                     @click="toggleJoker(props.row)"
-                    class="q-ml-xs"
                     :color="props.row.closedRoundWithJoker ? 'purple' : 'grey'"
                   >
                     <q-tooltip>
                       {{
                         props.row.closedRoundWithJoker
-                          ? "Joker Used"
-                          : "Use Joker"
+                          ? t("features.joker.jokerUsed")
+                          : t("features.joker.useJoker")
                       }}
                     </q-tooltip>
                   </q-btn>
@@ -219,9 +293,8 @@
                   'closer-active': props.row.closer === player,
                 }"
               >
-                <div
-                  class="row items-center justify-center q-gutter-x-sm text-center"
-                >
+                <div class="column items-center q-gutter-y-xs">
+                  <!-- Score Input -->
                   <q-input
                     v-model.number="props.row.scores[player]"
                     type="number"
@@ -238,53 +311,76 @@
                       props.row.closedRoundWithJoker ? 'text-weight-bold' : '',
                     ]"
                   />
-                  <q-btn
-                    flat
-                    round
-                    dense
-                    size="sm"
-                    icon="content_copy"
-                    :color="
-                      props.row.hasDisplayCard === player ? 'teal' : 'grey'
-                    "
-                    @click="toggleHasDisplayCard(props.row, player)"
-                  >
-                    <q-tooltip>
-                      {{
-                        props.row.hasDisplayCard === player
-                          ? "Unmark as having display card"
-                          : "Mark as having display card"
-                      }}
-                    </q-tooltip>
-                  </q-btn>
 
-                  <q-btn
-                    flat
-                    round
-                    dense
-                    size="sm"
-                    :icon="
-                      props.row.closer === player ? 'stars' : 'star_outline'
-                    "
-                    :color="props.row.closer === player ? 'amber' : 'grey'"
-                    @click="toggleCloser(props.row, player)"
-                    style="margin-left: 0px !important"
-                  >
-                    <q-tooltip>
-                      {{
-                        props.row.closer === player
-                          ? "Unmark as closer"
-                          : "Mark as closer"
-                      }}
-                    </q-tooltip>
-                  </q-btn>
+                  <!-- Action Buttons -->
+                  <div class="row justify-center q-gutter-x-xs">
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      size="sm"
+                      icon="block"
+                      :color="
+                        isDidNotComeOut(props.row, player) ? 'red' : 'grey'
+                      "
+                      @click="toggleDidNotComeOut(props.row, player)"
+                    >
+                      <q-tooltip>
+                        {{
+                          isDidNotComeOut(props.row, player)
+                            ? t("features.didNotComeOut.unmark")
+                            : t("features.didNotComeOut.markAs")
+                        }}
+                      </q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      size="sm"
+                      icon="content_copy"
+                      :color="
+                        props.row.hasDisplayCard === player ? 'teal' : 'grey'
+                      "
+                      @click="toggleHasDisplayCard(props.row, player)"
+                    >
+                      <q-tooltip>
+                        {{
+                          props.row.hasDisplayCard === player
+                            ? t("features.displayCard.unmark")
+                            : t("features.displayCard.markAs")
+                        }}
+                      </q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      size="sm"
+                      :icon="
+                        props.row.closer === player ? 'stars' : 'star_outline'
+                      "
+                      :color="props.row.closer === player ? 'amber' : 'grey'"
+                      @click="toggleCloser(props.row, player)"
+                    >
+                      <q-tooltip>
+                        {{
+                          props.row.closer === player
+                            ? t("features.closer.unmark")
+                            : t("features.closer.markAs")
+                        }}
+                      </q-tooltip>
+                    </q-btn>
+                  </div>
                 </div>
               </q-td>
             </q-tr>
           </template>
           <template v-slot:bottom-row>
             <q-tr class="totals-row">
-              <q-td class="text-center text-weight-medium">Total</q-td>
+              <q-td class="text-center text-weight-medium">{{
+                t("game.total")
+              }}</q-td>
               <q-td
                 v-for="player in players"
                 :key="`total-${player}`"
@@ -302,7 +398,7 @@
             unelevated
             color="primary"
             icon="add"
-            label="Add Round"
+            :label="t('game.addRound')"
             @click="addRound"
             class="ios-button q-mr-sm"
           />
@@ -310,7 +406,7 @@
             unelevated
             color="red-12"
             icon="done_all"
-            label="End Game"
+            :label="t('game.endGame')"
             @click="confirmEndGame"
             class="ios-button"
             :disable="!players.length || !rounds.length"
@@ -325,23 +421,23 @@
       class="column items-center justify-center full-height"
       style="min-height: 50vh"
     >
-      <q-icon name="groups" size="4rem" color="grey-4" />
+      <q-icon :name="t('app.emptyState.icon')" size="4rem" color="grey-4" />
       <div class="text-h6 text-grey-6 q-mt-md text-weight-medium">
-        Add players to begin
+        {{ t("app.emptyState.title") }}
       </div>
     </div>
 
     <!-- Dialogs -->
     <q-dialog v-model="showHistory" maximized>
       <q-card class="history-dialog">
-        <!-- Header -->
         <q-card-section class="history-header">
           <div class="row items-center justify-between q-px-sm">
-            <div class="text-h6 text-weight-medium">Game History</div>
+            <div class="text-h6 text-weight-medium">
+              {{ t("history.title") }}
+            </div>
             <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
           </div>
         </q-card-section>
-
         <!-- Content -->
         <q-card-section class="history-content">
           <template v-if="gameHistory.length">
@@ -358,11 +454,11 @@
                       {{ formatDate(game.date) }}
                     </div>
                     <div class="text-caption text-grey-7 q-mt-xs">
-                      {{ game.players.length }} players ·
-                      {{ game.rounds.length }} rounds
+                      {{ t("history.players", { count: game.players.length }) }}
+                      ·
+                      {{ t("history.rounds", { count: game.rounds.length }) }}
                     </div>
                   </div>
-                  <q-btn flat round dense icon="chevron_right" color="grey-6" />
                 </div>
               </div>
 
@@ -412,9 +508,11 @@
             class="column items-center justify-center full-height q-pa-xl"
           >
             <q-icon name="history" size="64px" color="grey-4" />
-            <div class="text-h6 text-grey-7 q-mt-md">No Game History</div>
+            <div class="text-h6 text-grey-7 q-mt-md">
+              {{ t("history.noHistory") }}
+            </div>
             <div class="text-caption text-grey-6 q-mt-sm">
-              Complete a game to see it here
+              {{ t("history.noHistoryDesc") }}
             </div>
           </div>
         </q-card-section>
@@ -425,7 +523,7 @@
     <q-dialog v-model="showStats">
       <q-card style="min-width: 350px">
         <q-card-section>
-          <div class="text-h6">Game Statistics</div>
+          <div class="text-h6">{{ t("stats.title") }}</div>
         </q-card-section>
 
         <q-card-section>
@@ -438,7 +536,12 @@
               >
                 <div class="absolute-full flex flex-center">
                   <q-badge color="white" text-color="primary">
-                    {{ player }}: {{ calculateTotal(player) }}
+                    {{
+                      t("stats.playerProgress", {
+                        player,
+                        score: calculateTotal(player),
+                      })
+                    }}
                   </q-badge>
                 </div>
               </q-linear-progress>
@@ -447,7 +550,12 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Close" color="primary" v-close-popup />
+          <q-btn
+            flat
+            :label="t('actions.close')"
+            color="primary"
+            v-close-popup
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -456,18 +564,23 @@
     <q-dialog v-model="showNewGameConfirm">
       <q-card>
         <q-card-section>
-          <div class="text-h6">Start New Game?</div>
+          <div class="text-h6">{{ t("game.startNewGame") }}</div>
         </q-card-section>
 
         <q-card-section>
-          Current game will be archived. Continue?
+          {{ t("game.confirmNewGame") }}
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="primary" v-close-popup />
           <q-btn
             flat
-            label="Confirm"
+            :label="t('actions.cancel')"
+            color="primary"
+            v-close-popup
+          />
+          <q-btn
+            flat
+            :label="t('actions.confirm')"
             color="positive"
             @click="startNewGame"
             v-close-popup
@@ -475,16 +588,20 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Info Dialog -->
     <q-dialog v-model="showInfo">
       <q-card style="min-width: 350px; max-width: 600px">
         <q-card-section class="row items-center">
-          <div class="text-h6">RummiScore Features Guide</div>
+          <div class="text-h6">{{ t("info.title") }}</div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <div class="text-subtitle2 q-mb-md">Game Controls</div>
+          <div class="text-subtitle2 q-mb-md">
+            {{ t("info.gameControls") }}
+          </div>
           <div class="q-mb-lg">
             <div
               v-for="(control, index) in gameControls"
@@ -499,7 +616,9 @@
                   class="q-mt-xs q-mr-md"
                 />
                 <div class="feature-content">
-                  <div class="text-weight-medium">{{ control.title }}</div>
+                  <div class="text-weight-medium">
+                    {{ control.title }}
+                  </div>
                   <div class="text-caption text-grey-7">
                     {{ control.description }}
                   </div>
@@ -510,7 +629,9 @@
 
           <q-separator class="q-my-md" />
 
-          <div class="text-subtitle2 q-mb-md">Round Actions</div>
+          <div class="text-subtitle2 q-mb-md">
+            {{ t("info.roundActions") }}
+          </div>
           <div>
             <div
               v-for="(action, index) in roundActions"
@@ -525,7 +646,9 @@
                   class="q-mt-xs q-mr-md"
                 />
                 <div class="feature-content">
-                  <div class="text-weight-medium">{{ action.title }}</div>
+                  <div class="text-weight-medium">
+                    {{ action.title }}
+                  </div>
                   <div class="text-caption text-grey-7">
                     {{ action.description }}
                   </div>
@@ -536,18 +659,40 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Got it" color="primary" v-close-popup />
+          <q-btn
+            flat
+            :label="t('actions.gotIt')"
+            color="primary"
+            v-close-popup
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <div class="powered-by-footer q-pa-sm text-center q-pb-md">
+      <span class="text-grey-7 text-caption">
+        Powered by
+        <a
+          href="https://vidmardata.se"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-primary text-weight-medium"
+        >
+          Vidmar Data Integration
+        </a>
+      </span>
+    </div>
   </q-page>
 </template>
-
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { date, useQuasar } from "quasar";
+import { date, useQuasar, Notify } from "quasar";
+import { useI18n } from "vue-i18n";
 
-// Core state variables
+Notify.setDefaults({
+  position: "top",
+});
+
+const { t, locale } = useI18n();
 const $q = useQuasar();
 const players = ref([]);
 const rounds = ref([]);
@@ -558,13 +703,36 @@ const showStats = ref(false);
 const gameHistory = ref([]);
 const loading = ref(false);
 const currentGameStartTime = ref(null);
+const editingPlayerName = ref(null);
+const tempPlayerName = ref("");
+const stateHistory = ref([]);
+const currentStateIndex = ref(-1);
+const maxHistorySize = 100;
 
-// Table columns computed property
+const currentLanguage = computed(() =>
+  locale.value.substring(0, 2).toUpperCase(),
+);
+const languages = [
+  { code: "sv-SE", name: "Svenska" },
+  { code: "no-NO", name: "Norsk" },
+  { code: "en-US", name: "English" },
+];
+
+const changeLanguage = (lang) => {
+  locale.value = lang;
+  localStorage.setItem("preferredLanguage", lang);
+  $q.notify({
+    message: t("language.changed"),
+    color: "positive",
+    icon: "language",
+  });
+};
+
 const tableColumns = computed(() => {
   const columns = [
     {
       name: "round",
-      label: "Round",
+      label: t("game.round"),
       field: "round",
       align: "center",
     },
@@ -582,26 +750,27 @@ const tableColumns = computed(() => {
   return columns;
 });
 
+// Computed properties for stats
 const quickStats = computed(() => [
   {
-    label: "Current Leader",
+    key: "currentLeader",
     value: currentLeader.value,
   },
   {
-    label: "Highest Round Score",
+    key: "highestRoundScore",
     value:
       highestScoreWithPlayer.value.score === 0
-        ? "No scores"
+        ? t("stats.noScores")
         : `${highestScoreWithPlayer.value.player} (${highestScoreWithPlayer.value.score})`,
   },
   {
-    label: "Total Rounds",
+    key: "totalRounds",
     value: rounds.value.length,
   },
 ]);
-// Computed properties for stats
+
 const currentLeader = computed(() => {
-  if (!players.value.length) return "No players";
+  if (!players.value.length) return t("stats.noPlayers");
   const totals = players.value.map((player) => ({
     player,
     total: calculateTotal(player),
@@ -611,7 +780,7 @@ const currentLeader = computed(() => {
 });
 
 const highestScoreWithPlayer = computed(() => {
-  if (!rounds.value.length) return { score: 0, player: "No players" };
+  if (!rounds.value.length) return { score: 0, player: t("stats.noPlayers") };
 
   let highestScore = -Infinity;
   let playerWithHighest = "";
@@ -630,11 +799,25 @@ const highestScoreWithPlayer = computed(() => {
     player: playerWithHighest,
   };
 });
+const isWinningPlayer = (player) => {
+  if (!players.value.length) return false;
 
-const timeElapsed = computed(() => {
-  if (!currentGameStartTime.value) return "";
-  return date.formatDate(currentGameStartTime.value, "MMM D, YYYY [at] h:mm A");
-});
+  const playerTotal = calculateTotal(player);
+  const highestScore = players.value.reduce((highest, currentPlayer) => {
+    const currentScore = calculateTotal(currentPlayer);
+    return currentScore > highest ? currentScore : highest;
+  }, -Infinity);
+
+  return playerTotal === highestScore && playerTotal !== 0;
+};
+const isHighestInRound = (round, player) => {
+  if (!round || !round.scores) return false;
+
+  const playerScore = round.scores[player];
+  const highestScore = Math.max(...Object.values(round.scores));
+
+  return playerScore === highestScore && playerScore > 0;
+};
 
 // Player management methods
 const addPlayer = () => {
@@ -642,7 +825,7 @@ const addPlayer = () => {
 
   if (!trimmedName) {
     $q.notify({
-      message: "Please enter a valid name",
+      message: t("players.invalidName"),
       color: "warning",
     });
     return;
@@ -654,7 +837,7 @@ const addPlayer = () => {
     players.value.some((player) => player.toUpperCase() === capitalizedName)
   ) {
     $q.notify({
-      message: "Player already exists",
+      message: t("players.playerExists"),
       color: "warning",
     });
     return;
@@ -662,7 +845,7 @@ const addPlayer = () => {
 
   if (trimmedName.length > 20) {
     $q.notify({
-      message: "Name is too long",
+      message: t("players.nameTooLong"),
       color: "warning",
     });
     return;
@@ -678,54 +861,178 @@ const addPlayer = () => {
   }
   newPlayer.value = "";
   saveState();
-  saveToHistory(`Added player: ${capitalizedName}`);
+  saveToHistory(t("players.playerAdded", { player: capitalizedName }));
   $q.notify({
-    message: "Player added successfully",
+    message: t("players.playerAdded"),
     color: "positive",
   });
 };
 
-const updatePlayerName = (oldName, newName) => {
-  const index = players.value.indexOf(oldName);
-  if (index !== -1) {
-    const capitalizedNewName = newName.trim().toUpperCase();
+const startEditing = (player) => {
+  editingPlayerName.value = player;
+  tempPlayerName.value = player;
+};
 
-    if (!nameExists) {
-      players.value[index] = capitalizedNewName;
-      rounds.value.forEach((round) => {
-        round.scores[capitalizedNewName] = round.scores[oldName];
-        delete round.scores[oldName];
-      });
-      saveState();
-      saveToHistory(`Renamed player: ${oldName} to ${capitalizedNewName}`);
-    }
+const handleNameBlur = (player) => {
+  if (editingPlayerName.value === player) {
+    editingPlayerName.value = null;
+    tempPlayerName.value = "";
   }
 };
 
+const handleNameSubmit = (oldName) => {
+  const newName = tempPlayerName.value.trim();
+
+  if (!newName) {
+    $q.notify({
+      message: t("players.invalidName"),
+      color: "warning",
+    });
+    return;
+  }
+
+  if (newName.length > 20) {
+    $q.notify({
+      message: t("players.nameTooLong"),
+      color: "warning",
+    });
+    return;
+  }
+
+  // Check if name already exists (excluding the current player)
+  if (
+    players.value.some(
+      (player) =>
+        player !== oldName && player.toUpperCase() === newName.toUpperCase(),
+    )
+  ) {
+    $q.notify({
+      message: t("players.playerExists"),
+      color: "warning",
+    });
+    return;
+  }
+
+  // If the name is different, update it
+  if (newName.toUpperCase() !== oldName.toUpperCase()) {
+    updatePlayerName(oldName, newName.toUpperCase());
+  }
+
+  // Reset editing state
+  editingPlayerName.value = null;
+  tempPlayerName.value = "";
+};
+
+const updatePlayerName = (oldName, newName) => {
+  // Update player name in rounds
+  rounds.value.forEach((round) => {
+    if (round.scores[oldName] !== undefined) {
+      round.scores[newName] = round.scores[oldName];
+      delete round.scores[oldName];
+    }
+
+    if (round.closer === oldName) {
+      round.closer = newName;
+    }
+
+    if (round.hasDisplayCard === oldName) {
+      round.hasDisplayCard = newName;
+    }
+
+    if (round.didNotComeOut) {
+      const index = round.didNotComeOut.indexOf(oldName);
+      if (index !== -1) {
+        round.didNotComeOut[index] = newName;
+      }
+    }
+  });
+
+  const playerIndex = players.value.indexOf(oldName);
+  if (playerIndex !== -1) {
+    players.value[playerIndex] = newName;
+  }
+
+  saveState();
+  saveToHistory(
+    t("players.nameUpdated", {
+      oldName,
+      newName,
+    }),
+  );
+
+  $q.notify({
+    message: t("players.nameUpdated", {
+      oldName,
+      newName,
+    }),
+    color: "positive",
+    icon: "edit",
+    timeout: 2000,
+  });
+};
+const toggleJoker = (round) => {
+  if (!round.closer) {
+    $q.notify({
+      message: t("features.joker.needCloser"),
+      color: "warning",
+    });
+    return;
+  }
+
+  if (round.closedRoundWithJoker) {
+    if (round.originalScores) {
+      Object.keys(round.scores).forEach((player) => {
+        round.scores[player] = round.originalScores[player];
+      });
+    }
+    round.closedRoundWithJoker = false;
+  } else {
+    round.originalScores = { ...round.scores };
+    Object.keys(round.scores).forEach((player) => {
+      const currentScore = round.scores[player];
+      if (player === round.closer) {
+        round.scores[player] = currentScore * 2;
+      } else {
+        round.scores[player] = Math.abs(currentScore) * -2;
+      }
+    });
+
+    round.closedRoundWithJoker = true;
+
+    $q.notify({
+      message: t("features.joker.applied"),
+      color: "purple",
+      icon: "casino",
+    });
+  }
+  saveState();
+  saveToHistory(
+    round.closedRoundWithJoker
+      ? t("features.joker.jokerUsed")
+      : t("features.joker.useJoker"),
+  );
+};
 const removePlayer = (player) => {
   if (players.value.length <= 1) {
-    // Show confirmation dialog before resetting the game
     $q.dialog({
-      title: "Reset Game",
-      message: "Removing the last player will reset the game. Continue?",
+      title: t("players.resetGame"),
+      message: t("players.resetGameConfirm"),
       cancel: true,
       persistent: true,
     }).onOk(() => {
-      // Reset the game
       players.value = players.value.filter((p) => p !== player);
       rounds.value.forEach((round) => {
         delete round.scores[player];
       });
       saveState();
-      saveToHistory(`Removed player: ${player}`);
+      saveToHistory(t("players.playerRemoved", { player }));
     });
     return;
   }
 
-  // Original logic for removing a player when there are multiple players
   $q.dialog({
-    title: "Confirm Removal",
-    message: `Are you sure you want to remove ${player}?`,
+    title: t("players.removePlayer"),
+    message: t("players.confirmRemove", { player }),
     cancel: true,
     persistent: true,
   }).onOk(() => {
@@ -735,13 +1042,11 @@ const removePlayer = (player) => {
     });
     saveState();
     $q.notify({
-      message: "Player removed",
+      message: t("players.playerRemoved"),
       color: "warning",
     });
   });
 };
-
-// Round management methods
 const addRound = () => {
   const scores = {};
   players.value.forEach((player) => {
@@ -753,106 +1058,135 @@ const addRound = () => {
     closedRoundWithJoker: false,
     closer: null,
     hasDisplayCard: null,
+    didNotComeOut: [],
   });
   saveState();
-  saveToHistory("Added new round");
+  saveToHistory(t("game.addRound"));
+};
+
+const isDidNotComeOut = (round, player) => {
+  return round.didNotComeOut?.includes(player) || false;
+};
+
+const toggleDidNotComeOut = (round, player) => {
+  if (!round.didNotComeOut) {
+    round.didNotComeOut = [];
+  }
+
+  const hasDisplayCard = round.hasDisplayCard === player;
+  const displayCardBonus = hasDisplayCard ? 50 : 0;
+
+  if (isDidNotComeOut(round, player)) {
+    // Undo: Remove player from didNotComeOut and set score to 0 (or 50 if has display card)
+    round.didNotComeOut = round.didNotComeOut.filter((p) => p !== player);
+    round.scores[player] = displayCardBonus;
+
+    saveState();
+    $q.notify({
+      message: t("features.didNotComeOut.unmarked", { player }),
+      color: "warning",
+      icon: "block",
+    });
+  } else {
+    // Mark as did not come out: Set score to -200 (or -150 if has display card)
+    round.didNotComeOut.push(player);
+    round.scores[player] = -200 + displayCardBonus;
+
+    saveState();
+    $q.notify({
+      message: t("features.didNotComeOut.marked", { player }),
+      color: "negative",
+      icon: "block",
+    });
+  }
 };
 const toggleHasDisplayCard = (round, player) => {
-  // If this player already has the display card, remove it
+  const currentScore = round.scores[player] || 0;
+  const pointAdjustment = 50;
+
   if (round.hasDisplayCard === player) {
-    round.scores[player] -= 50;
+    round.scores[player] -= pointAdjustment;
     round.hasDisplayCard = null;
 
     saveState();
-    saveToHistory(
-      `Unmarked ${player} as having display card (-50) for round ${round.round}`,
-    );
-
     $q.notify({
-      message: `${player} unmarked as having display card (-50 points)`,
+      message: t("features.displayCard.cardUnmarked", { player }),
       color: "warning",
       icon: "playing_cards",
     });
     return;
   }
 
-  // If another player already has the display card, show warning
   if (round.hasDisplayCard) {
     $q.notify({
-      message: `${round.hasDisplayCard} already has the display card`,
+      message: t("features.displayCard.alreadyHas", {
+        player: round.hasDisplayCard,
+      }),
       color: "warning",
       icon: "warning",
     });
     return;
   }
 
-  // Assign display card to this player
-  round.scores[player] += 50;
+  round.scores[player] += pointAdjustment;
   round.hasDisplayCard = player;
 
   saveState();
-  saveToHistory(
-    `Marked ${player} as having display card (+50) for round ${round.round}`,
-  );
-
   $q.notify({
-    message: `${player} marked as having display card (+50 points)`,
+    message: t("features.displayCard.cardMarked", { player }),
     color: "positive",
     icon: "playing_cards",
   });
 };
+
 const toggleCloser = (round, player) => {
-  // If this player is already the closer, remove closer status
   if (round.closer === player) {
     round.scores[player] -= 50;
     round.closer = null;
 
     saveState();
-    saveToHistory(
-      `Unmarked ${player} as closer (-50) for round ${round.round}`,
-    );
+    saveToHistory(t("features.closer.closerUnmarked", { player }));
 
     $q.notify({
-      message: `${player} unmarked as closer (-50 points)`,
+      message: t("features.closer.closerUnmarked", { player }),
       color: "warning",
       icon: "star_outline",
     });
     return;
   }
 
-  // If another player is already the closer, show warning
   if (round.closer) {
     $q.notify({
-      message: `${round.closer} is already the closer`,
+      message: t("features.closer.alreadyCloser", { player: round.closer }),
       color: "warning",
       icon: "warning",
     });
     return;
   }
 
-  // Assign closer status to this player
   round.scores[player] += 50;
   round.closer = player;
 
   saveState();
-  saveToHistory(`Marked ${player} as closer (+50) for round ${round.round}`);
+  saveToHistory(t("features.closer.closerMarked", { player }));
 
   $q.notify({
-    message: `${player} marked as closer (+50 points)`,
+    message: t("features.closer.closerMarked", { player }),
     color: "positive",
     icon: "stars",
   });
 };
+
 const confirmRemoveRound = (roundNum) => {
   $q.dialog({
-    title: "Remove Round",
-    message: `Are you sure you want to remove round ${roundNum}?`,
+    title: t("game.removeRound"),
+    message: t("game.confirmRemoveRound", { round: roundNum }),
     cancel: true,
     persistent: true,
   }).onOk(() => {
     removeRound(roundNum);
     $q.notify({
-      message: "Round removed",
+      message: t("game.roundRemoved"),
       color: "warning",
     });
   });
@@ -869,56 +1203,9 @@ const removeRound = (roundNum) => {
   }
 
   saveState();
-  saveToHistory(`Removed round ${roundNum}`);
-};
-const toggleJoker = (round) => {
-  if (!round.closer) {
-    $q.notify({
-      message: "Please mark the closer before applying joker",
-      color: "warning",
-    });
-    return;
-  }
-
-  if (round.closedRoundWithJoker) {
-    // Revert to original scores
-    if (round.originalScores) {
-      Object.keys(round.scores).forEach((player) => {
-        round.scores[player] = round.originalScores[player];
-      });
-    }
-    round.closedRoundWithJoker = false;
-  } else {
-    // Store original scores before applying joker effect
-    round.originalScores = { ...round.scores };
-
-    // Process scores based on marked closer
-    Object.keys(round.scores).forEach((player) => {
-      const currentScore = round.scores[player];
-      if (player === round.closer) {
-        // Closer gets double positive points
-        round.scores[player] = currentScore * 2;
-      } else {
-        // Everyone else gets their points doubled and made negative
-        round.scores[player] = Math.abs(currentScore) * -2;
-      }
-    });
-
-    round.closedRoundWithJoker = true;
-
-    $q.notify({
-      message: "Joker applied! Closer doubled, others doubled negative.",
-      color: "purple",
-      icon: "casino",
-    });
-  }
-  saveState();
-  saveToHistory(
-    `${round.closedRoundWithJoker ? "Applied" : "Removed"} joker for round ${round.round}`,
-  );
+  saveToHistory(t("game.roundRemoved"));
 };
 
-// Score calculation and styling methods
 const calculateTotal = (player) => {
   return rounds.value.reduce(
     (sum, round) => sum + (round.scores[player] || 0),
@@ -931,22 +1218,6 @@ const getPlayerColor = (player) => {
   return colors[players.value.indexOf(player) % colors.length];
 };
 
-const isHighestInRound = (round, player) => {
-  const scores = Object.values(round.scores);
-  return round.scores[player] === Math.max(...scores);
-};
-
-const isWinningPlayer = (player) => {
-  const total = calculateTotal(player);
-  return total === Math.max(...players.value.map((p) => calculateTotal(p)));
-};
-
-const getPlayerProgress = (player) => {
-  const maxTotal = Math.max(...players.value.map((p) => calculateTotal(p)));
-  return maxTotal ? calculateTotal(player) / maxTotal : 0;
-};
-
-// Game management methods
 const confirmNewGame = () => {
   if (players.value.length && rounds.value.length) {
     showNewGameConfirm.value = true;
@@ -976,28 +1247,26 @@ const startNewGame = () => {
     players.value = [];
     rounds.value = [];
     currentGameStartTime.value = new Date();
-    // Add first round automatically if there are players
     if (players.value.length > 0) {
       addRound();
     }
     saveState();
     loading.value = false;
     $q.notify({
-      message: "New game started",
+      message: t("game.gameStarted"),
       color: "positive",
     });
   }, 500);
 };
-// Add these to your existing methods
+
 const confirmEndGame = () => {
   $q.dialog({
-    title: "End Game",
-    message:
-      "Are you sure you want to end this game? It will be saved to history.",
+    title: t("game.endGame"),
+    message: t("game.confirmEndGame"),
     cancel: true,
     persistent: true,
     ok: {
-      label: "End Game",
+      label: t("game.endGame"),
       color: "red-12",
     },
   }).onOk(() => {
@@ -1008,9 +1277,8 @@ const confirmEndGame = () => {
 const endGame = () => {
   loading.value = true;
   setTimeout(() => {
-    // Save current game to history
     const finalScores = {};
-    const currentPlayers = [...players.value]; // Store current players
+    const currentPlayers = [...players.value];
     players.value.forEach((player) => {
       finalScores[player] = calculateTotal(player);
     });
@@ -1024,25 +1292,24 @@ const endGame = () => {
       duration: Date.now() - currentGameStartTime.value,
     });
 
-    // Find the winner
     const winner = Object.entries(finalScores).reduce((a, b) =>
       a[1] > b[1] ? a : b,
     );
 
-    // Reset game but keep players
-    rounds.value = []; // Clear rounds
-    currentGameStartTime.value = new Date(); // Reset start time
-    players.value = currentPlayers; // Restore players
+    rounds.value = [];
+    currentGameStartTime.value = new Date();
+    players.value = currentPlayers;
 
-    // Add first round for the new game
     addRound();
 
     saveState();
     loading.value = false;
 
-    // Show success notification with winner
     $q.notify({
-      message: `Game ended! ${winner[0]} won with ${winner[1]} points! New game started with same players.`,
+      message: t("game.gameEnded", {
+        winner: winner[0],
+        points: winner[1],
+      }),
       color: "secondary",
       icon: "emoji_events",
       timeout: 3000,
@@ -1051,12 +1318,49 @@ const endGame = () => {
   }, 500);
 };
 
-// Utility methods
+// Helper functions for timestamps
+const getCurrentStateTimestamp = () => {
+  if (
+    currentStateIndex.value >= 0 &&
+    currentStateIndex.value < stateHistory.value.length
+  ) {
+    return stateHistory.value[currentStateIndex.value].timestamp;
+  }
+  return Date.now();
+};
+
+const getNextStateTimestamp = () => {
+  if (currentStateIndex.value + 1 < stateHistory.value.length) {
+    return stateHistory.value[currentStateIndex.value + 1].timestamp;
+  }
+  return Date.now();
+};
+
 const formatDate = (dateStr) => {
   return date.formatDate(dateStr, "MMMM D, YYYY");
 };
 
-// State management methods
+const formatTime = (date) => {
+  if (!date) return "";
+  return new Date(date).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "numeric",
+  });
+};
+
+const formatTimeAgo = (timestamp) => {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const seconds = Math.floor(diff / 1000);
+
+  if (seconds < 60) return t("time.justNow");
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return t("time.minutesAgo", { minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return t("time.hoursAgo", { hours });
+  return t("time.daysAgo", { days: Math.floor(hours / 24) });
+};
+
 const saveState = () => {
   localStorage.setItem(
     "rummiState",
@@ -1081,23 +1385,261 @@ const loadState = () => {
   } catch (error) {
     console.error("Error loading state:", error);
     $q.notify({
-      message: "Error loading saved game",
+      message: t("errors.loadingState"),
       color: "negative",
     });
   }
 };
 
-// Lifecycle hooks
+const saveToHistory = (action = "") => {
+  try {
+    const isScoreUpdate = action === t("actions.updateScores");
+    const previousState = stateHistory.value[currentStateIndex.value];
+
+    if (isScoreUpdate && previousState) {
+      const currentScores = JSON.stringify(rounds.value);
+      const previousScores = JSON.stringify(previousState.rounds);
+      if (currentScores === previousScores) {
+        return;
+      }
+    }
+
+    if (currentStateIndex.value < stateHistory.value.length - 1) {
+      stateHistory.value = stateHistory.value.slice(
+        0,
+        currentStateIndex.value + 1,
+      );
+    }
+
+    const currentState = {
+      players: [...players.value],
+      rounds: JSON.parse(JSON.stringify(rounds.value)),
+      gameHistory: [...gameHistory.value],
+      currentGameStartTime: currentGameStartTime.value,
+      action,
+      timestamp: Date.now(), // Ensure timestamp is always set
+    };
+
+    stateHistory.value.push(currentState);
+    currentStateIndex.value++;
+
+    if (stateHistory.value.length > maxHistorySize) {
+      stateHistory.value.shift();
+      currentStateIndex.value--;
+    }
+
+    localStorage.setItem(
+      "rummiStateHistory",
+      JSON.stringify({
+        states: stateHistory.value,
+        currentIndex: currentStateIndex.value,
+      }),
+    );
+  } catch (error) {
+    console.error("Error saving history:", error);
+    $q.notify({
+      message: t("errors.savingHistory"),
+      color: "negative",
+    });
+  }
+};
+const undo = () => {
+  if (!canUndo.value) return;
+
+  try {
+    const currentState = stateHistory.value[currentStateIndex.value];
+    currentStateIndex.value--;
+    const previousState = stateHistory.value[currentStateIndex.value];
+
+    players.value = [...previousState.players];
+    rounds.value = JSON.parse(JSON.stringify(previousState.rounds));
+    gameHistory.value = [...previousState.gameHistory];
+    currentGameStartTime.value = previousState.currentGameStartTime;
+
+    saveState();
+
+    $q.notify({
+      message: t("actions.undoAction", {
+        action: currentState.action || t("actions.lastAction"),
+        time: formatTimeAgo(currentState.timestamp),
+      }),
+      color: "info",
+      icon: "undo",
+      timeout: 2000,
+      position: "bottom",
+    });
+  } catch (error) {
+    console.error("Error during undo:", error);
+    $q.notify({
+      message: t("errors.undoOperation"),
+      color: "negative",
+    });
+  }
+};
+
+// Update the redo function notification
+const redo = () => {
+  if (!canRedo.value) return;
+
+  try {
+    currentStateIndex.value++;
+    const nextState = stateHistory.value[currentStateIndex.value];
+
+    players.value = [...nextState.players];
+    rounds.value = JSON.parse(JSON.stringify(nextState.rounds));
+    gameHistory.value = [...nextState.gameHistory];
+    currentGameStartTime.value = nextState.currentGameStartTime;
+
+    saveState();
+
+    $q.notify({
+      message: t("actions.redoAction", {
+        action: nextState.action || t("actions.nextAction"),
+        time: formatTimeAgo(nextState.timestamp),
+      }),
+      color: "info",
+      icon: "redo",
+      timeout: 2000,
+      position: "bottom",
+    });
+  } catch (error) {
+    console.error("Error during redo:", error);
+    $q.notify({
+      message: t("errors.redoOperation"),
+      color: "negative",
+    });
+  }
+};
+
+const getUndoActionText = () => {
+  if (!canUndo.value) return t("actions.nothingToUndo");
+  const currentState = stateHistory.value[currentStateIndex.value];
+  return currentState.action || t("actions.lastAction");
+};
+
+const getRedoActionText = () => {
+  if (!canRedo.value) return t("actions.nothingToRedo");
+  const nextState = stateHistory.value[currentStateIndex.value + 1];
+  return nextState.action || t("actions.nextAction");
+};
+
+const undoTooltip = computed(() => {
+  if (!canUndo.value) return t("actions.nothingToUndo");
+  const timestamp = getCurrentStateTimestamp();
+  return t("actions.undoAction", {
+    action: getUndoActionText(),
+    time: formatTimeAgo(timestamp),
+  });
+});
+
+const redoTooltip = computed(() => {
+  if (!canRedo.value) return t("actions.nothingToRedo");
+  const timestamp = getNextStateTimestamp();
+  return t("actions.redoAction", {
+    action: getRedoActionText(),
+    time: formatTimeAgo(timestamp),
+  });
+});
+
+// Game controls info
+
+const gameControls = computed(() => [
+  {
+    icon: "history",
+    color: "primary",
+    title: t("info.controls.gameHistory.title"),
+    description: t("info.controls.gameHistory.description"),
+  },
+  {
+    icon: "add",
+    color: "primary",
+    title: t("info.controls.newGame.title"),
+    description: t("info.controls.newGame.description"),
+  },
+  {
+    icon: "undo",
+    color: "primary",
+    title: t("info.controls.undo.title"),
+    description: t("info.controls.undo.description"),
+  },
+  {
+    icon: "redo",
+    color: "primary",
+    title: t("info.controls.redo.title"),
+    description: t("info.controls.redo.description"),
+  },
+  {
+    icon: "language",
+    color: "primary",
+    title: t("info.controls.language.title"),
+    description: t("info.controls.language.description"),
+  },
+]);
+
+const roundActions = computed(() => [
+  {
+    icon: "close",
+    color: "negative",
+    title: t("info.actions.removeRound.title"),
+    description: t("info.actions.removeRound.description"),
+  },
+  {
+    icon: "theater_comedy",
+    color: "purple",
+    title: t("info.actions.joker.title"),
+    description: t("info.actions.joker.description"),
+  },
+  {
+    icon: "block",
+    color: "red",
+    title: t("info.actions.didNotComeOut.title"),
+    description: t("info.actions.didNotComeOut.description"),
+  },
+  {
+    icon: "content_copy",
+    color: "teal",
+    title: t("info.actions.displayCard.title"),
+    description: t("info.actions.displayCard.description"),
+  },
+  {
+    icon: "stars",
+    color: "amber",
+    title: t("info.actions.closer.title"),
+    description: t("info.actions.closer.description"),
+  },
+]);
+
+// Watchers and lifecycle hooks
+watch(
+  [players, rounds, gameHistory],
+  () => {
+    saveState();
+  },
+  { deep: true },
+);
+
+watch(
+  rounds,
+  (newRounds, oldRounds) => {
+    if (JSON.stringify(newRounds) !== JSON.stringify(oldRounds)) {
+      if (!stateHistory.value[currentStateIndex.value]?.action) {
+        saveToHistory(t("actions.updateScores"));
+      }
+    }
+  },
+  { deep: true },
+);
+
 onMounted(() => {
   loadState();
   if (!currentGameStartTime.value) {
     currentGameStartTime.value = new Date();
   }
-  // Initialize history with current state
   saveToHistory();
+  const savedLanguage = localStorage.getItem("preferredLanguage") || "sv";
+  locale.value = savedLanguage;
 });
 
-// Load history state on mount
 onMounted(() => {
   try {
     const savedHistory = JSON.parse(localStorage.getItem("rummiStateHistory"));
@@ -1110,7 +1652,6 @@ onMounted(() => {
   }
 });
 
-// Add keyboard shortcuts
 onMounted(() => {
   window.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "z") {
@@ -1125,268 +1666,12 @@ onMounted(() => {
   });
 });
 
-// Watchers
-watch(
-  [players, rounds, gameHistory],
-  () => {
-    saveState();
-  },
-  { deep: true },
-);
-// Add these with your other refs
-const stateHistory = ref([]);
-const currentStateIndex = ref(-1);
-const maxHistorySize = 100; // Maximum number of states to keep
-
-// Improved saveToHistory function
-const saveToHistory = (action = "") => {
-  try {
-    // Check if this is a score update or a different action
-    const isScoreUpdate = action === "Updated scores";
-    const previousState = stateHistory.value[currentStateIndex.value];
-
-    // Don't save if it's just a score update that matches the previous state
-    if (isScoreUpdate && previousState) {
-      const currentScores = JSON.stringify(rounds.value);
-      const previousScores = JSON.stringify(previousState.rounds);
-      if (currentScores === previousScores) {
-        return;
-      }
-    }
-
-    // Remove any future states if we're not at the end
-    if (currentStateIndex.value < stateHistory.value.length - 1) {
-      stateHistory.value = stateHistory.value.slice(
-        0,
-        currentStateIndex.value + 1,
-      );
-    }
-
-    // Create deep copy of current state
-    const currentState = {
-      players: [...players.value],
-      rounds: JSON.parse(JSON.stringify(rounds.value)),
-      gameHistory: [...gameHistory.value],
-      currentGameStartTime: currentGameStartTime.value,
-      action,
-      timestamp: Date.now(),
-    };
-
-    // Add new state
-    stateHistory.value.push(currentState);
-    currentStateIndex.value++;
-
-    // Limit history size
-    if (stateHistory.value.length > maxHistorySize) {
-      stateHistory.value.shift();
-      currentStateIndex.value--;
-    }
-
-    // Save to localStorage
-    localStorage.setItem(
-      "rummiStateHistory",
-      JSON.stringify({
-        states: stateHistory.value,
-        currentIndex: currentStateIndex.value,
-      }),
-    );
-  } catch (error) {
-    console.error("Error saving history:", error);
-  }
-};
-
-// Improved undo function
-// Update the undo function's notification
-const undo = () => {
-  if (!canUndo.value) return;
-
-  try {
-    const currentState = stateHistory.value[currentStateIndex.value];
-    currentStateIndex.value--;
-    const previousState = stateHistory.value[currentStateIndex.value];
-
-    // Apply previous state
-    players.value = [...previousState.players];
-    rounds.value = JSON.parse(JSON.stringify(previousState.rounds));
-    gameHistory.value = [...previousState.gameHistory];
-    currentGameStartTime.value = previousState.currentGameStartTime;
-
-    saveState();
-
-    // Show notification with the action we just undid
-    const timeDiff = Date.now() - currentState.timestamp;
-    const timeAgo = formatTimeAgo(timeDiff);
-
-    $q.notify({
-      message: `Undid: ${currentState.action || "last action"} (${timeAgo})`,
-      color: "info",
-      icon: "undo",
-      timeout: 2000,
-      position: "bottom",
-    });
-  } catch (error) {
-    console.error("Error during undo:", error);
-    $q.notify({
-      message: "Error during undo operation",
-      color: "negative",
-    });
-  }
-};
-
-// Update the redo function's notification similarly
-const redo = () => {
-  if (!canRedo.value) return;
-
-  try {
-    currentStateIndex.value++;
-    const nextState = stateHistory.value[currentStateIndex.value];
-
-    // Apply next state
-    players.value = [...nextState.players];
-    rounds.value = JSON.parse(JSON.stringify(nextState.rounds));
-    gameHistory.value = [...nextState.gameHistory];
-    currentGameStartTime.value = nextState.currentGameStartTime;
-
-    saveState();
-
-    // Show notification with the action we just redid
-    const timeDiff = Date.now() - nextState.timestamp;
-    const timeAgo = formatTimeAgo(timeDiff);
-
-    $q.notify({
-      message: `Redid: ${nextState.action || "next action"} (${timeAgo})`,
-      color: "info",
-      icon: "redo",
-      timeout: 2000,
-      position: "bottom",
-    });
-  } catch (error) {
-    console.error("Error during redo:", error);
-    $q.notify({
-      message: "Error during redo operation",
-      color: "negative",
-    });
-  }
-};
-// Add these helper methods
-const getUndoActionText = () => {
-  if (!canUndo.value) return "Nothing to undo";
-  // Get the current state instead of previous state
-  const currentState = stateHistory.value[currentStateIndex.value];
-  const timeDiff = Date.now() - currentState.timestamp;
-  const action = currentState.action || "action";
-  return `Undo ${action} (${formatTimeAgo(timeDiff)})`;
-};
-
-const getRedoActionText = () => {
-  if (!canRedo.value) return "Nothing to redo";
-  const nextState = stateHistory.value[currentStateIndex.value + 1];
-  const timeDiff = Date.now() - nextState.timestamp;
-  const action = nextState.action || "action";
-  return `Redo ${action} (${formatTimeAgo(timeDiff)})`;
-};
-const undoTooltip = computed(() => {
-  if (!canUndo.value) return "Nothing to undo";
-  return getUndoActionText();
-});
-
-const redoTooltip = computed(() => {
-  if (!canRedo.value) return "Nothing to redo";
-  return getRedoActionText();
-});
-
-// Helper function to format time differences
-const formatTimeAgo = (ms) => {
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-};
-
-watch(
-  rounds,
-  (newRounds, oldRounds) => {
-    if (JSON.stringify(newRounds) !== JSON.stringify(oldRounds)) {
-      // Only save if the change wasn't from another action
-      if (!stateHistory.value[currentStateIndex.value]?.action) {
-        saveToHistory("Updated scores");
-      }
-    }
-  },
-  { deep: true },
-);
-
 // Computed properties for button states
 const canUndo = computed(() => currentStateIndex.value > 0);
 const canRedo = computed(
   () => currentStateIndex.value < stateHistory.value.length - 1,
 );
-// Add these to your refs
 const showInfo = ref(false);
-
-// Add these constants for the info dialog
-const gameControls = [
-  {
-    icon: "analytics",
-    color: "primary",
-    title: "Statistics",
-    description: "View current game statistics and player rankings",
-  },
-  {
-    icon: "history",
-    color: "primary",
-    title: "Game History",
-    description: "Access previous games and their results",
-  },
-  {
-    icon: "add",
-    color: "primary",
-    title: "New Game",
-    description: "Start a new game (current game will be archived)",
-  },
-  {
-    icon: "undo",
-    color: "primary",
-    title: "Undo",
-    description: "Undo the last action (Ctrl/Cmd + Z)",
-  },
-  {
-    icon: "redo",
-    color: "primary",
-    title: "Redo",
-    description: "Redo the previously undone action (Ctrl/Cmd + Shift + Z)",
-  },
-];
-
-const roundActions = [
-  {
-    icon: "theater_comedy",
-    color: "purple",
-    title: "Closed with Joker Round",
-    description: "Double points for closer, double negative for others",
-  },
-  {
-    icon: "stars",
-    color: "amber",
-    title: "Round Closer",
-    description: "Mark player who closed the round (+50 points)",
-  },
-  {
-    icon: "content_copy",
-    color: "teal",
-    title: "Got Display Card",
-    description: "Mark player who got the display card (+50 points)",
-  },
-  {
-    icon: "close",
-    color: "negative",
-    title: "Remove Round",
-    description: "Delete the current round",
-  },
-];
 </script>
 
 <style scoped>
@@ -1405,10 +1690,6 @@ const roundActions = [
   background: #f5f5f5;
 }
 
-.ios-input :deep(.q-field__control) {
-  height: 44px;
-}
-
 .ios-button {
   border-radius: 10px;
   height: 44px;
@@ -1417,24 +1698,6 @@ const roundActions = [
 .ios-table {
   border-radius: 16px;
   background: white;
-}
-
-.ios-table :deep(.q-table__container) {
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.ios-table :deep(.q-table thead tr) {
-  background: #f8f8f8;
-}
-
-.ios-table :deep(.q-table th) {
-  font-weight: 500;
-  padding: 12px 8px;
-}
-
-.ios-table :deep(.q-table td) {
-  padding: 8px;
 }
 
 .totals-row {
@@ -1461,16 +1724,54 @@ const roundActions = [
 }
 
 .score-input {
-  width: 90px;
-  margin: 0 auto;
+  width: 70px;
+  margin: 0;
 }
 
 .score-input :deep(.q-field__control) {
-  background: #f5f5f5;
-  border-radius: 8px;
+  height: 32px;
+  padding: 0 !important;
 }
 
-/* Responsive adjustments */
+.score-input :deep(.q-field__native) {
+  font-size: 0.9em;
+  text-align: center;
+}
+
+.q-btn.q-btn--dense {
+  min-height: 24px;
+  width: 24px;
+}
+
+@media (max-width: 600px) {
+  .score-input {
+    width: 60px;
+  }
+
+  .q-btn.q-btn--dense {
+    padding: 0 2px;
+    min-height: 20px;
+    width: 20px;
+  }
+
+  .q-btn.q-btn--dense .q-icon {
+    font-size: 16px;
+  }
+}
+
+.ios-table :deep(.q-table td),
+.ios-table :deep(.q-table th) {
+  padding: 8px 4px;
+}
+
+.row.no-wrap {
+  flex-wrap: nowrap !important;
+}
+
+.q-gutter-x-xs > * {
+  margin-left: 2px !important;
+  margin-right: 2px !important;
+}
 @media (max-width: 600px) {
   .score-input {
     width: 70px;
@@ -1485,7 +1786,6 @@ const roundActions = [
     padding: 6px 4px;
   }
 }
-/* Add to your existing <style> section */
 .round-delete-btn {
   opacity: 0.7;
   transition: opacity 0.2s;
@@ -1495,10 +1795,6 @@ const roundActions = [
   opacity: 1;
 }
 
-/* Make the delete button red on hover */
-.round-delete-btn:hover :deep(.q-icon) {
-  color: #ff4444;
-}
 .joker-active {
   background: rgba(156, 39, 176, 0.1);
 }
@@ -1556,18 +1852,15 @@ const roundActions = [
   background: #f0f0f0;
 }
 
-/* iOS-style momentum scrolling */
 .history-content {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
 }
 
-/* Hide scrollbar for cleaner look */
 .history-content::-webkit-scrollbar {
   display: none;
 }
 
-/* Responsive adjustments */
 @media (max-width: 600px) {
   .history-content {
     padding: 12px !important;
@@ -1596,5 +1889,89 @@ const roundActions = [
 
 .feature-description {
   flex: 1;
+}
+.language-menu {
+  border-radius: 13px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.language-item {
+  min-height: 40px;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
+
+  &.q-item--active {
+    background: transparent;
+    color: inherit;
+  }
+}
+.player-name-container {
+  padding: 4px;
+}
+
+.player-name-wrapper {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-name-display {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.player-name-edit {
+  height: 100%;
+}
+
+.player-name-edit :deep(.q-field__native) {
+  text-align: center;
+  font-weight: 500;
+  color: inherit;
+  text-transform: uppercase;
+  height: 32px;
+}
+
+.player-name-edit :deep(.q-field__control) {
+  height: 32px;
+}
+
+/* Remove default input styling */
+.player-name-edit :deep(.q-field__control:before),
+.player-name-edit :deep(.q-field__control:after) {
+  display: none;
+}
+.powered-by-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+}
+
+.powered-by-footer a {
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.powered-by-footer a:hover {
+  color: var(--q-primary-darkened);
+}
+
+.q-page {
+  padding-bottom: 50px !important;
 }
 </style>

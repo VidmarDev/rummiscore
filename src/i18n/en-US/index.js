@@ -1,7 +1,171 @@
-// This is just an example,
-// so you can safely delete all default props below
-
 export default {
-  failed: 'Action failed',
-  success: 'Action was successful'
-}
+  app: {
+    title: "RummiScore",
+    subtitle: "Game started {date} at {time}",
+    emptyState: {
+      title: "Add players to begin",
+      icon: "groups",
+    },
+  },
+  stats: {
+    currentLeader: "Current Leader",
+    highestRoundScore: "Highest Round Score",
+    totalRounds: "Total Rounds",
+    noPlayers: "No players",
+    noScores: "No scores",
+    playerProgress: "{player}: {score}",
+  },
+  players: {
+    addPlayer: "Add player",
+    playerExists: "Player already exists",
+    nameTooLong: "Name too long (max 20 characters)",
+    invalidName: "Please enter a valid name",
+    playerAdded: "Player added successfully",
+    confirmRemove: "Are you sure you want to remove {player}?",
+    playerRemoved: "Player removed",
+    resetGame: "Reset Game",
+    resetGameConfirm: "Removing the last player will reset the game. Continue?",
+    removePlayer: "Remove Player",
+    nameUpdated: "Player name changed from {oldName} to {newName}",
+  },
+  game: {
+    newGame: "New Game",
+    startNewGame: "Start New Game?",
+    confirmNewGame: "Current game will be archived. Continue?",
+    gameStarted: "New game started",
+    endGame: "End Game",
+    confirmEndGame:
+      "Are you sure you want to end this game? It will be saved to history.",
+    gameEnded:
+      "Game ended! {winner} won with {points} points! New game started with same players.",
+    round: "Round",
+    total: "Total",
+    addRound: "Add Round",
+    removeRound: "Remove Round",
+    confirmRemoveRound: "Are you sure you want to remove round {round}?",
+    roundRemoved: "Round removed",
+  },
+  actions: {
+    undo: "Undo",
+    redo: "Redo",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    close: "Close",
+    gotIt: "Got it",
+    nothingToUndo: "Nothing to undo",
+    nothingToRedo: "Nothing to redo",
+    undoAction: "Undo {action} ({time})",
+    redoAction: "Redo {action} ({time})",
+    updateScores: "Score updated",
+  },
+  features: {
+    joker: {
+      title: "Closed with Joker Round",
+      description: "Double points for closer, double negative for others",
+      applied: "Joker applied! Closer doubled, others doubled negative.",
+      useJoker: "Use Joker",
+      jokerUsed: "Joker Used",
+      needCloser: "Please mark the closer before applying joker",
+    },
+    closer: {
+      title: "Round Closer",
+      description: "Mark player who closed the round (+50 points)",
+      markAs: "Mark as closer",
+      unmark: "Unmark as closer",
+      alreadyCloser: "{player} is already the closer",
+      closerMarked: "{player} marked as closer (+50 points)",
+      closerUnmarked: "{player} unmarked as closer (-50 points)",
+    },
+    displayCard: {
+      title: "Got Display Card",
+      description: "Mark player who got the display card (+50 points)",
+      markAs: "Mark as having display card",
+      unmark: "Unmark as having display card",
+      alreadyHas: "{player} already has the display card",
+      cardMarked: "{player} marked as having display card (+50 points)",
+      cardUnmarked: "{player} unmarked as having display card (-50 points)",
+    },
+    didNotComeOut: {
+      markAs: "Mark as Did Not Come Out (-200)",
+      unmark: "Remove Did Not Come Out status",
+      marked: "{player} marked as Did Not Come Out",
+      unmarked: "Removed Did Not Come Out status for {player}",
+    },
+  },
+  history: {
+    title: "Game History",
+    noHistory: "No Game History",
+    noHistoryDesc: "Complete a game to see it here",
+    players: "{count} players",
+    rounds: "{count} rounds",
+    gameDate: "{date}",
+  },
+  info: {
+    title: "RummiScore Features Guide",
+    gameControls: "Game Controls",
+    roundActions: "Round Actions",
+    controls: {
+      gameHistory: {
+        title: "Game History",
+        description: "Access previous games and their results",
+      },
+      newGame: {
+        title: "New Game",
+        description: "Start a new game (current game will be archived)",
+      },
+      undo: {
+        title: "Undo",
+        description: "Undo the last action (Ctrl/Cmd + Z)",
+      },
+      redo: {
+        title: "Redo",
+        description: "Redo the previously undone action (Ctrl/Cmd + Shift + Z)",
+      },
+      language: {
+        title: "Change Language",
+        description: "Change the language of the application",
+      },
+    },
+    actions: {
+      joker: {
+        title: "Closed with Joker Round",
+        description: "Double points for closer, double negative for others",
+      },
+      closer: {
+        title: "Round Closer",
+        description: "Mark player who closed the round (+50 points)",
+      },
+      displayCard: {
+        title: "Got Display Card",
+        description: "Mark player who got the display card (+50 points)",
+      },
+      displayCard: {
+        title: "Got Display Card",
+        description: "Mark player who got the display card (+50 points)",
+      },
+      removeRound: {
+        title: "Remove round",
+        description: "Removes the round",
+      },
+      didNotComeOut: {
+        title: "Did not come out",
+        description: "Player did not come out this round (-200 points)",
+      },
+    },
+  },
+  errors: {
+    loadingState: "Error loading saved game",
+    undoOperation: "Error during undo operation",
+    redoOperation: "Error during redo operation",
+    savingHistory: "Error saving history",
+  },
+  time: {
+    justNow: "just now",
+    minutesAgo: "{minutes}m ago",
+    hoursAgo: "{hours}h ago",
+    daysAgo: "{days}d ago",
+  },
+  language: {
+    changed: "Language changed",
+  },
+};

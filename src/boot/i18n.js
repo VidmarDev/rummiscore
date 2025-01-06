@@ -1,14 +1,23 @@
-import { boot } from 'quasar/wrappers'
-import { createI18n } from 'vue-i18n'
-import messages from 'src/i18n'
+// In your boot/i18n.js
+import { boot } from "quasar/wrappers";
+import { createI18n } from "vue-i18n";
+import messages from "src/i18n";
 
 export default boot(({ app }) => {
   const i18n = createI18n({
-    locale: 'en-US',
-    globalInjection: true,
-    messages
-  })
+    legacy: false,
+    locale: "sv-SE",
+    fallbackLocale: "sv-SE",
+    messages,
+    missingWarn: false,
+    fallbackWarn: false,
+    warnHtmlMessage: false,
+    silentTranslationWarn: true,
+    silentFallbackWarn: true,
+    preserveDirectiveContent: true,
+    runtimeOnly: false,
+  });
 
-  // Set i18n instance on app
-  app.use(i18n)
-})
+  app.use(i18n);
+  return i18n;
+});

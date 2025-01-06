@@ -1,41 +1,33 @@
-# RummiScore (rummi-score)
+# RummiScore
 
-A tool to help keep track of Rummikub score.
+A Progressive Web App for tracking scores in Rummikub games. Built with Vue 3 and Quasar Framework.
 
-## Install the dependencies
-```bash
-yarn
-# or
-npm install
-```
+## Live @
 
-### Start the app in development mode (hot-code reloading, error reporting, etc.)
-```bash
-quasar dev
-```
+🎮 [rummi.vidmardata.se](https://rummi.vidmardata.se)
 
+## Features
 
-### Lint the files
-```bash
-yarn lint
-# or
-npm run lint
-```
+- Track scores for multiple players
+- Game history
+- Feature shortcuts (Closed the Round, Has Display Card, etc.)
+- Undo/redo functionality
+- Multi-language support (🇸🇪 Swedish, 🇳🇴 Norwegian, 🇬🇧 English)
+- Works offline
+- Mobile-friendly
 
+## Installation
 
-### Format the files
-```bash
-yarn format
-# or
-npm run format
-```
+The app is available as a PWA - simply visit [rummi.vidmardata.se](https://rummi.vidmardata.se) and install it to your device.
 
+## Contributing
 
+If you'd like to submit a pull request (PR) or suggest new features (such as additional language support or further game enhancements), don't hesitate. :)
 
-### Build the app for production
-```bash
-quasar build
-```
+## License
 
-### Customize the configuration
-See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
+MIT
+
+---
+
+Powered by [Vidmar Data Integration](https://vidmardata.se)
